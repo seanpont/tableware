@@ -31,16 +31,11 @@ class TestTableWare(unittest.TestCase):
         self.assertEqual(self.sp.value('James', 'Timmy'), 1)
 
     def test_partition_randomly(self):
-        names = list('abcdefghij')
+        names = pad_names(list('abcdefghij'), 3)
         tables = partition_randomly(names, 3)
         print tables
         self.assertEqual(len(tables), 4)
         self.assertEqual(len(tables[0]), 3)
-        self.assertEqual(len(tables[1]), 3)
-        self.assertEqual(len(tables[2]), 3)
-        self.assertEqual(len(tables[3]), 3)
-        self.assertEqual(tables[3][1], '')
-        self.assertEqual(tables[3][2], '')
 
     def test_score(self):
         self.sp.add_friendship('a', 'b')
@@ -57,7 +52,6 @@ class TestTableWare(unittest.TestCase):
         tables = [[1, 2, 3, 4], [5, 6, 7, 8]]
         for i in range(10):
             a, b, c, d = pick_random_indices(tables)
-            self.assertIsNot((a, b), (c, d))
             self.assertLess(a, len(tables))
             self.assertLess(c, len(tables))
             self.assertLess(b, len(tables[0]))
@@ -74,8 +68,33 @@ class TestTableWare(unittest.TestCase):
         swap_seats(tables, [0, 0, 0, 1])
         self.assertEqual(tables, [[2, 1, 3], [4, 5, 6]])
 
+    def test_acceptance_probability(self):
+        p0 = acceptance_probability(5, 4, 1000)
+        self.assertEqual(p0, 1)
+        p1 = acceptance_probability(4, 6, 1000)
+        print p1
+        self.assertLess(p1, 1)
+        p2 = acceptance_probability(4, 6, 100)
+        print p2
+        self.assertLess(p2, p1)
+        p3 = acceptance_probability(4, 6, 10)
+        print p3
+        self.assertLess(p3, p2)
 
-    def test_optimize(self):
+    def test_simulate_annealing(self):
+        self.add_friendships()
+
+        tables = self.sp.simulate_annealing(3, 3, 10000, .0001)
+        print tables
+
+    def test_brute_force(self):
+        self.add_friendships()
+        tables, score = self.sp.brute_force(3)
+        print tables
+        print 'score:', score
+
+
+    def add_friendships(self):
         self.sp.add_friendship('a', 'b')
         self.sp.add_friendship('a', 'c')
         self.sp.add_friendship('a', 'd')
@@ -86,8 +105,6 @@ class TestTableWare(unittest.TestCase):
         self.sp.add_friendship('f', 'g')
         self.sp.add_friendship('h', 'i')
 
-        tables = self.sp.arrange_seats(2)
-        print tables
 
 
 if __name__ == '__main__':
