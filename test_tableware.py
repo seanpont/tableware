@@ -3,6 +3,7 @@ __author__ = 'sean'
 import random
 import unittest
 from tableware import *
+import string
 
 
 class TestTableWare(unittest.TestCase):
@@ -17,11 +18,9 @@ class TestTableWare(unittest.TestCase):
         self.sp.add_friendship('Bob', 'James')  # case-insensitive
         self.sp.add_friendship('Timmy', 'James')
         self.sp.add_friendship('Timmy', 'Bob')  # duplicates are ignored
-        self.sp.add_friendship('Bob', '')  # empty strings are ignored
+        self.sp.add_friendship('Bob', '')  # empty strings are ignored if other user already included
         self.sp.add_friendship('James', 'james')  # narcissism is ignored
-
-        print self.sp.friend_counter
-        print self.sp.friendships
+        self.sp.add_friendship('Porcupine', '')  # Empty strings with new name adds name but without friendships
 
         # Bob has 4 friends and Kim has 1, so bob-kim = 1 1/3
         self.assertEqual(self.sp.value('Kim', 'Bob'), 4.0/3.0)
@@ -29,6 +28,8 @@ class TestTableWare(unittest.TestCase):
         self.assertEqual(self.sp.value('Timmy', 'Kim'), 0)
         # James has 2 and Timmy has 2, so James-Timmy = 1
         self.assertEqual(self.sp.value('James', 'Timmy'), 1)
+        self.assertTrue('porcupine' in self.sp.friend_counter.keys())
+        self.assertEqual(self.sp.friend_counter['porcupine'], 0)
 
     def test_partition_randomly(self):
         names = pad_names(list('abcdefghij'), 3)
@@ -51,11 +52,12 @@ class TestTableWare(unittest.TestCase):
     def test_pick_random_indices(self):
         tables = [[1, 2, 3, 4], [5, 6, 7, 8]]
         for i in range(10):
-            a, b, c, d = pick_random_indices(tables)
-            self.assertLess(a, len(tables))
-            self.assertLess(c, len(tables))
-            self.assertLess(b, len(tables[0]))
-            self.assertLess(d, len(tables[0]))
+            t1, s1, t2, s2 = pick_random_indices(tables)
+            self.assertLess(t1, len(tables))
+            self.assertLess(t2, len(tables))
+            self.assertIsNot(t1, t2)  # no sense swapping seats at the same table
+            self.assertLess(s1, len(tables[0]))
+            self.assertLess(s2, len(tables[0]))
 
     def test_swap_seats(self):
         tables = [[1, 2, 3], [4, 5, 6]]
@@ -68,22 +70,8 @@ class TestTableWare(unittest.TestCase):
         swap_seats(tables, [0, 0, 0, 1])
         self.assertEqual(tables, [[2, 1, 3], [4, 5, 6]])
 
-    def test_acceptance_probability(self):
-        p0 = acceptance_probability(5, 4, 1000)
-        self.assertEqual(p0, 1)
-        p1 = acceptance_probability(4, 6, 1000)
-        print p1
-        self.assertLess(p1, 1)
-        p2 = acceptance_probability(4, 6, 100)
-        print p2
-        self.assertLess(p2, p1)
-        p3 = acceptance_probability(4, 6, 10)
-        print p3
-        self.assertLess(p3, p2)
-
     def test_simulate_annealing(self):
         self.add_friendships()
-
         tables = self.sp.simulate_annealing(3, 3, 10000, .0001)
         print tables
 
@@ -93,6 +81,10 @@ class TestTableWare(unittest.TestCase):
         print tables
         print 'score:', score
 
+    def test_hill_climb(self):
+        self.add_friendships()
+        tables, score = self.sp.hill_climb(3)
+        print score, ':', tables
 
     def add_friendships(self):
         self.sp.add_friendship('a', 'b')
@@ -105,7 +97,11 @@ class TestTableWare(unittest.TestCase):
         self.sp.add_friendship('f', 'g')
         self.sp.add_friendship('h', 'i')
 
-
+    def test_import_file(self):
+        self.sp.import_friend_list('./test_friendlist.csv')
+        self.assertEqual(len(self.sp.friend_counter), 6)
+        self.assertTrue(self.sp.areFriends('a', 'b'))
+        self.assertFalse(self.sp.areFriends('a', 'f'))
 
 if __name__ == '__main__':
     unittest.main()
